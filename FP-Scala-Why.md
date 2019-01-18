@@ -15,7 +15,7 @@ This means code that:
 
 * Is easy to test
 * Is easy to re-use
-* Provides an abstraction
+* Provides a useful abstraction
 * Handles failure by design
 * Scales well, is performant, and robust (Akka solves this for us)
 
@@ -112,7 +112,7 @@ Functor[F[_]]    Monoid[F[_]]    Monad[F[_]]
 
 ## Cats
 
-![right](cats2.png)
+![right](images/cats2.png)
 
 * Built by [TypeLevel](https://typelevel.org/)
 * Top notch documentation with a helpful community
