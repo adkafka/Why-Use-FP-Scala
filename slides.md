@@ -55,7 +55,28 @@ Comes in three main forms:
 
 ## Ad-hoc Polymorphism Example
 
-TODO: Give an example of a typeclass
+[.code-highlight: 12]
+[.code-highlight: 4-11]
+[.code-highlight: 14-17]
+
+```scala
+import cats._
+import cats.implicits._
+
+object CommittableElement {
+  implicit val functor = new Functor[CommittableElement] {
+    override def map[A, B](fa: CommittableElement[A])(f: A => B): CommittableElement[B] = {
+      CommittableElement(fa.committableOffset, f(fa.element))
+    }
+  }
+}
+
+case class CommittableElement[E](committableOffset: CommittableOffset, element: E)
+
+object Main extends App {
+  CommittableElement(offset, 6).map(_ + 1)
+}
+```
 
 ---
 

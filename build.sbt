@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"             %% "akka-actor"                    % akkaVersion,
   "com.typesafe.akka"             %% "akka-http-core"                % akkaHttpVersion,
   "com.typesafe.akka"             %% "akka-stream"                   % akkaVersion,
+  "com.typesafe.akka"             %% "akka-stream-kafka"             % "0.22",
   "org.typelevel"                 %% "cats-core"                     % catsVersion
 )
