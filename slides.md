@@ -27,6 +27,9 @@ My definition: A re-usable dimensionality reduction in a problem space
 
 Abstractions are the holy grail in programming; they allow for thinking about a problem in isolation, without worrying about other components.
 
+* **Black Box Abstraction**: An abstraction in which the implementation details are not prerequisite for usage. One need only think about inputs and outputs.
+* **White Box Abstraction**: An abstraction in which in which understanding the implementation details are required for usage.
+
 One emergent pattern has been the use of *polymorphism*: re-using a single interface on many concrete types, or using a single abstract type to represent many concrete types that follow some contract
 
 ---
@@ -80,9 +83,29 @@ object Main extends App {
 
 ---
 
+## Example Continued
+
+```scala
+def greet(str: String): Either[Throwable, String] = {
+  if (str.contains("boom")) Left(new RuntimeException("boom"))
+  else Right(s"$str world")
+}
+
+val nestedHello = CommittableElement(offset, Either.right[Throwable, String]("hello"))
+val nestedBoom = CommittableElement(offset, Either.right[Throwable, String]("boom"))
+
+EitherT(nestedHello).map(_.toUpperCase).subflatMap(greet)
+// CommittableElement(offset, Right("HELLO world"))
+
+EitherT(nestedBoom).subflatMap(greet)
+// CommittableElement(offset, Left(RuntimeException("boom")))
+```
+
+---
+
 ## Functional Programming (FP)
 
-* *Pure functions* are the perfect abstraction, so we should use them when possible:
+* *Pure functions* are a **black box abstraction**:
   * Only need to understand the parameters and the return type
 * By using libraries built around FP, we can:
   * Build components that all behave similarly
@@ -92,6 +115,8 @@ object Main extends App {
 ---
 
 ## Category Theory
+
+My definition: Formal study of abstractions
 
 Branched from math
 
