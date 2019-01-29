@@ -1,12 +1,14 @@
 package stream
 
 import akka.NotUsed
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Source
 import cats._
 import cats.data._
 import stream.Play.{CommittableElement, CommittableOffset, Context, Incoming}
 
 import scala.util.Try
+import scala.concurrent.duration._
 
 object Play {
   final case class Context[C, A](context: C, get: A)
@@ -42,12 +44,16 @@ object Play {
   def cube(p: Parsed): Cubed = Cubed(p.num ^ 3)
   def isEven(p: Cubed): Result = if (p.num % 2 == 0) Result(true) else Result(false)
 
-  KafkaSource()
-    .map(c.map(_)(parse))
-    .map(EitherT.apply)
-    .map(_.map(cube))
-    .map(_.map(isEven))
-    .map(_.value)
+  val src: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
+    KafkaSource()
+      .map(c.map(_)(parse))
+      .buffer(1000, OverflowStrategy.backpressure)
+      .map(EitherT.apply)
+      .map(_.map(cube))
+      .throttle(1, 1.second)
+      .map(_.map(isEven))
+      .map(_.value)
+  }
 }
 
 object KafkaSource {

@@ -105,8 +105,14 @@ EitherT(nestedBoom).subflatMap(greet)
 
 ## Functional Programming (FP)
 
-* *Pure functions* are a **black box abstraction**:
-  * Only need to understand the parameters and the return type
+*Pure functions* are a **black box abstraction**:
+* Only need to understand the parameters and the return type
+* If you want to be pedantic, you could point out that no function is a true black box
+  * Time
+  * Cache effects
+  * Energy usage
+  * Cosmic rays
+* The point is that for **most** uses, you can think of pure functions as a black box; implementation does not matter
 * By using libraries built around FP, we can:
   * Build components that all behave similarly
   * Reason about our components in isolation
