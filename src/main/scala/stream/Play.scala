@@ -9,15 +9,12 @@ import stream.Play.{CommittableElement, CommittableOffset, Context, Incoming}
 import scala.util.Try
 
 object Play {
-  final case class Context[C, A](context: C, get: A) {
-    def map[B](f: A => B): Context[C, B] = Context(context, f(get))
-  }
+  final case class Context[C, A](context: C, get: A)
 
   object Context {
-    implicit def functor[C, A] = {
-      type ContextC[A_] = Context[C, A_]
-      new Functor[ContextC] {
-        override def map[A, B](fa: ContextC[A])(f: (A) => B) = fa.map(f)
+    implicit def functor[C]: Functor[Context[C, ?]] = {
+      new Functor[Context[C, ?]] {
+        override def map[A, B](fa: Context[C, A])(f: (A) => B): Context[C, B] = Context(fa.context, f(fa.get))
       }
     }
   }
@@ -27,8 +24,6 @@ object Play {
   type CommittableElement[A] = Context[CommittableOffset, A]
 
   val c: Functor[CommittableElement] = Functor[CommittableElement]
-  val ce = EitherT[CommittableElement, Errors, Result]
-
 
   case class Incoming(hexString: String)
   case class Parsed(num: Int)
@@ -38,12 +33,6 @@ object Play {
   sealed trait Errors
   case class ParseError(input: Incoming) extends Errors
 
-  KafkaSource()
-    .map(c.map(_)(parse))
-    .map(EitherT.apply)
-    .map(_.map(cube))
-    .map(_.map(isEven))
-
   def parse(in: Incoming): Either[Errors, Parsed] = {
     Try(in.hexString.toInt).fold(
       _ => Left(ParseError(in)),
@@ -52,6 +41,13 @@ object Play {
   }
   def cube(p: Parsed): Cubed = Cubed(p.num ^ 3)
   def isEven(p: Cubed): Result = if (p.num % 2 == 0) Result(true) else Result(false)
+
+  KafkaSource()
+    .map(c.map(_)(parse))
+    .map(EitherT.apply)
+    .map(_.map(cube))
+    .map(_.map(isEven))
+    .map(_.value)
 }
 
 object KafkaSource {
