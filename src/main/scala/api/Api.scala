@@ -6,7 +6,8 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
-import cats.data.EitherT
+import cats._
+import cats.data._
 import cats.implicits._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
@@ -21,9 +22,9 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 object Api {
-  implicit val sys = ActorSystem()
-  implicit val mat = ActorMaterializer()
-  implicit val ec  = sys.dispatcher
+  implicit val sys: ActorSystem = ActorSystem()
+  implicit val mat: ActorMaterializer = ActorMaterializer()
+  implicit val ec: ExecutionContext = sys.dispatcher
 
   sealed trait ApiError extends Exception
   case class HttpConnectionException(value: Throwable) extends ApiError
@@ -84,12 +85,13 @@ object Api {
   }
 
   def doThings3(uri: Uri): Future[Either[ApiError, Response]] = {
-    import cats.implicits._
     import MyFutureOps._
 
-    type FutApi[T] = Future[Either[ApiError, T]]
+    type EitherError[T] = Either[ApiError, T]
+    type FutApi[T] = Future[EitherError[T]]
+    implicit val x: Applicative[FutApi] = Applicative[Future].compose[Either[ApiError, ?]]
 
-    final case class SuccessResponse(get: HttpResponse) extends AnyVal
+    final case class SuccessResponse(get: HttpResponse)
 
     def request(): FutApi[HttpResponse] = {
       Http().singleRequest(HttpRequest(uri = uri))

@@ -9,6 +9,7 @@ import cats.implicits._
 import stream.Play.{CommittableElement, CommittableOffset, Context, Incoming}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.higherKinds
 import scala.util.Try
@@ -64,6 +65,8 @@ object Play {
     else Future.successful(Either.left(NotInWhitelist()))
   }
   def isEven(p: Cubed): Result = if (p.num % 2 == 0) Result(true) else Result(false)
+
+  implicit val x = Applicative[Future]
 
   // Note: Would be syntactically cleaner with a StreamT/FlowT class
   val src: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
