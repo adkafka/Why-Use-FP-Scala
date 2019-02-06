@@ -11,7 +11,7 @@ import cats.implicits._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
-import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext
 
 /* TODO: Need a:
  * def mapAsyncE[T](par: Int)(f: Out ⇒ T): Repr[Either[Throwable, T]]
@@ -33,18 +33,18 @@ object Api {
   case class Response(content: String, time: Long, value: Double)
 
   def doThings(uri: Uri): Future[Response] = {
-    Http()
-      .singleRequest(HttpRequest(uri = uri))
+    Http().singleRequest(HttpRequest(uri = uri))
       .flatMap {
         case response if response.status != StatusCodes.OK =>
-          response.entity.dataBytes.runWith(Sink.ignore)
-          Future.failed(HttpResponseException(response.status))
+          response.entity.dataBytes.runWith(Sink.ignore).flatMap { _ =>
+            Future.failed(HttpResponseException(response.status))
+          }
         case response =>
           Unmarshal(response)
             .to[Response]
             .recoverWith { case ex => Future.failed(UnmarshalResponseException(ex)) }
       }
-      .recoverWith { case ex: Throwable => Future.failed(HttpConnectionException(ex)) }
+      .recoverWith { case ex => Future.failed(HttpConnectionException(ex)) }
   }
 
   def doThings2(uri: Uri): Future[Response] = {
@@ -64,29 +64,36 @@ object Api {
     }
 
     Http().singleRequest(HttpRequest(uri = uri))
-      .adaptError { case ex: Throwable => HttpConnectionException(ex) }
+      .adaptError { case ex => HttpConnectionException(ex) }
       .flatMap(filterBadResponse)
       .flatMap(goodResponse => Unmarshal(goodResponse.get).to[Response])
-      .adaptError { case ex: Throwable => UnmarshalResponseException(ex) }
+      .adaptError { case ex => UnmarshalResponseException(ex) }
+  }
+
+  object MyFutureOps {
+    class RichFutureOps[A](future: Future[A]) {
+      // TODO: This seems like re-inventing the wheel... but cats doesn't seem to have this yet
+      def liftToEither[E](liftWith: PartialFunction[Throwable, E])(implicit ec: ExecutionContext): Future[Either[E, A]] = {
+        future
+          .map(_.asRight)
+          .recover(liftWith.andThen(_.asLeft))
+      }
+    }
+
+    implicit def richFuture[A](f: Future[A])(implicit ec: ExecutionContext): RichFutureOps[A] = new RichFutureOps(f)
   }
 
   def doThings3(uri: Uri): Future[Either[ApiError, Response]] = {
     import cats.implicits._
+    import MyFutureOps._
 
     type FutApi[T] = Future[Either[ApiError, T]]
-    type FutApiT[T] = EitherT[Future, ApiError, T]
 
-    final case class SuccessResponse(get: HttpResponse)
-
-    // TODO: This seems like re-inventing the wheel... cats must have something for this
-    def liftToEither[E, A](future: Future[A])(lift: PartialFunction[Throwable, E]): Future[Either[E, A]] = {
-      future
-        .map(Either.right)
-        .recover(lift.andThen(Either.left))
-    }
+    final case class SuccessResponse(get: HttpResponse) extends AnyVal
 
     def request(): FutApi[HttpResponse] = {
-      liftToEither(Http().singleRequest(HttpRequest(uri = uri))){ case ex: Throwable => HttpConnectionException(ex) }
+      Http().singleRequest(HttpRequest(uri = uri))
+        .liftToEither { case ex => HttpConnectionException(ex) }
     }
 
     def filterBadResponse(response: HttpResponse): FutApi[SuccessResponse] = {
@@ -97,14 +104,17 @@ object Api {
           .runWith(Sink.ignore)
           .flatMap(_ => Future.successful(Either.left(HttpResponseException(response.status))))
       }
-      else Future.successful(Either.right(SuccessResponse(response)))
+      else SuccessResponse(response).pure[FutApi]
+    }
+
+    def unmarshal(goodResponse: SuccessResponse): FutApi[Response] = {
+      Unmarshal(goodResponse.get).to[Response]
+        .liftToEither { case ex => UnmarshalResponseException(ex) }
     }
 
     EitherT(request())
       .flatMapF(filterBadResponse)
-      .flatMapF { goodResponse =>
-        liftToEither(Unmarshal(goodResponse.get).to[Response]) { case ex: Throwable => UnmarshalResponseException(ex) }
-      }
+      .flatMapF(unmarshal)
       .value
   }
 }
