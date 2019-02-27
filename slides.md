@@ -23,34 +23,54 @@ This means code that:
 
 ## Abstraction
 
-My definition: A re-usable dimensionality reduction in a problem space
+*A re-usable dimensionality reduction in a problem space*
 
-Abstractions are the holy grail in programming; they allow for thinking about a problem in isolation, without worrying about other components.
+Are the **holy grail** in programming; they allow for thinking about a problem in isolation, without worrying about other components.
 
-* **Black Box Abstraction**: An abstraction in which the implementation details are not prerequisite for usage. One need only think about inputs and outputs.
-* **White Box Abstraction**: An abstraction in which in which understanding the implementation details are required for usage.
-
-One emergent pattern has been the use of *polymorphism*: re-using a single interface on many concrete types, or using a single abstract type to represent many concrete types that follow some contract
+With powerful abstractions, applications focus on the business logic, and the "glue" between the abstractions.
 
 ---
 
-## Polymorphism
+## Patterns in Creating Abstractions
+[.build-lists: true]
+
+1. Pure Functions
+2. Polymorphism
+
+---
+
+## Patterns in Creating Abstractions - Pure Functions
+
+In a strongly-typed language, *pure functions* are a **black box abstraction**:
+
+* Only need to understand the parameters and the return type
+* If you want to be pedantic, you could point out that no function is a true black box (time, effects on hardware, energy usage, etc.)
+* The point is that for **most** uses, you can think of pure functions as a black box; implementation does not matter
+
+---
+
+## Patterns in Creating Abstractions - Polymorphism
+[.build-lists: true]
+
+*Polymorphism*: re-using a single interface on many concrete types, or using a single abstract type to represent many concrete types that follow some contract.
+
 
 Comes in three main forms:
 
-1. **Parametric Polymorphism**: Generics (`List[A]`).
-2. **Subtype Polymorphism**: Class inheritance (`class X extends Y`).
-3. **Ad-Hoc Polymorphism**: Similar to Subtype Polymorphism, but more generalizable. In Scala, this comes from the use of implicit conversions or parameters.
+1. **Subtype Polymorphism**: Class inheritance (`class X extends Y`).
+2. **Parametric Polymorphism**: Generics (`List[A]`). Specify generic code to run on various types.
+3. **Ad-Hoc Polymorphism**: Similar to parametric polymorphism, but more generalizable. Change the generic code based on the actual type used.
 
-[.footer:  http://eed3si9n.com/herding-cats/polymorphism.html]
+[.footer:  http://eed3si9n.com/herding-cats/polymorphism.html & https://dzone.com/articles/scala-ad-hoc-polymorphism-explained ]
 
 ---
 
 ## Ad-hoc Polymorphism
 
-* Separates functions for different types of `A`
-* Works without access to source code (`Int`, `Flow`, etc)
+* Provide separate functions for different types of `A`, that extend some "type class"
+* Works without access to source code (`Int`, `Source`, etc)
 * Can be enabled and disabled in different scopes
+* Can have multiple implementations for the same type
 
 [.footer:  http://eed3si9n.com/herding-cats/polymorphism.html]
 
@@ -60,7 +80,7 @@ Comes in three main forms:
 
 [.code-highlight: 12]
 [.code-highlight: 4-11]
-[.code-highlight: 14-17]
+[.code-highlight: 14-18]
 
 ```scala
 import cats._
@@ -77,6 +97,7 @@ object CommittableElement {
 case class CommittableElement[E](committableOffset: CommittableOffset, element: E)
 
 object Main extends App {
+  functor.map(CommittableElement(offset, 5))(_ + 1)
   CommittableElement(offset, 6).map(_ + 1)
 }
 ```
@@ -94,26 +115,18 @@ def greet(str: String): Either[Throwable, String] = {
 val nestedHello = CommittableElement(offset, Either.right[Throwable, String]("hello"))
 val nestedBoom = CommittableElement(offset, Either.right[Throwable, String]("boom"))
 
-EitherT(nestedHello).map(_.toUpperCase).subflatMap(greet)
-// CommittableElement(offset, Right("HELLO world"))
+EitherT(nestedHello).subflatMap(greet).map(_.toUpperCase)
+// CommittableElement(offset, Right("HELLO WORLD"))
 
-EitherT(nestedBoom).subflatMap(greet)
+EitherT(nestedBoom).subflatMap(greet).map(_.toUpperCase)
 // CommittableElement(offset, Left(RuntimeException("boom")))
 ```
 
 ---
 
-## Functional Programming (FP)
+## Combining Functional Programming and Polymorphism
 
-*Pure functions* are a **black box abstraction**:
-* Only need to understand the parameters and the return type
-* If you want to be pedantic, you could point out that no function is a true black box
-  * Time
-  * Cache effects
-  * Energy usage
-  * Cosmic rays
-* The point is that for **most** uses, you can think of pure functions as a black box; implementation does not matter
-* By using libraries built around FP, we can:
+* By using and creating libraries built around FP, we can:
   * Build components that all behave similarly
   * Reason about our components in isolation
   * Combine components together without boilerplate
