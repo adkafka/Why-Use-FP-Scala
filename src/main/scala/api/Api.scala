@@ -55,11 +55,9 @@ object Api {
 
     def filterBadResponse(response: HttpResponse): Future[SuccessResponse] = {
       if (response.status != StatusCodes.OK) {
-        response
-          .entity
-          .dataBytes
-          .runWith(Sink.ignore)
-          .flatMap(_ => Future.failed(HttpResponseException(response.status)))
+        response.entity.dataBytes.runWith(Sink.ignore).flatMap { _ =>
+          Future.failed(HttpResponseException(response.status))
+        }
       }
       else Future.successful(SuccessResponse(response))
     }
@@ -72,16 +70,14 @@ object Api {
   }
 
   object MyFutureOps {
-    class RichFutureOps[A](future: Future[A]) {
-      // TODO: This seems like re-inventing the wheel... but cats doesn't seem to have this yet
+    implicit class RichFutureOps[A](future: Future[A]) {
+      // TODO: This seems like re-inventing the wheel... but cats doesn't seem to have this
       def liftToEither[E](liftWith: PartialFunction[Throwable, E])(implicit ec: ExecutionContext): Future[Either[E, A]] = {
         future
           .map(_.asRight)
           .recover(liftWith.andThen(_.asLeft))
       }
     }
-
-    implicit def richFuture[A](f: Future[A])(implicit ec: ExecutionContext): RichFutureOps[A] = new RichFutureOps(f)
   }
 
   def doThings3(uri: Uri): Future[Either[ApiError, Response]] = {
@@ -100,11 +96,9 @@ object Api {
 
     def filterBadResponse(response: HttpResponse): FutApi[SuccessResponse] = {
       if (response.status != StatusCodes.OK) {
-        response
-          .entity
-          .dataBytes
-          .runWith(Sink.ignore)
-          .flatMap(_ => Future.successful(Either.left(HttpResponseException(response.status))))
+        response.entity.dataBytes.runWith(Sink.ignore).flatMap { _ =>
+          Future.successful(Either.left(HttpResponseException(response.status)))
+        }
       }
       else SuccessResponse(response).pure[FutApi]
     }

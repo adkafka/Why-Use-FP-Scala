@@ -6,40 +6,17 @@ import akka.stream.scaladsl.Source
 import cats._
 import cats.data._
 import cats.implicits._
-import stream.Play.{CommittableElement, CommittableOffset, Context, Incoming}
+import stream.Play.{CommittableElement, CommittableOffset, Incoming}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.language.higherKinds
 import scala.util.Try
 
 object Play {
-  final case class Context[C, A](context: C, get: A) {
-    def map[B](f: A => B): Context[C, B] = Context(context, f(get))
-    def traverse[G[_]: Applicative, B](f: A => G[B]): G[Context[C, B]] = Applicative[G].map(f(get))(Context(context, _))
-  }
-
-  object Context {
-    implicit def functor[C]: Functor[Context[C, ?]] = {
-      new Functor[Context[C, ?]] {
-        override def map[A, B](fa: Context[C, A])(f: (A) => B): Context[C, B] = Context(fa.context, f(fa.get))
-      }
-    }
-
-    implicit def traverse[C]: Traverse[Context[C, ?]] = {
-      new Traverse[Context[C, ?]] {
-        override def traverse[G[_]: Applicative, A, B](fa: Context[C, A])(f: A => G[B]): G[Context[C, B]] = fa.traverse(f)
-        override def foldLeft[A, B](fa: Context[C, A], b: B)(f: (B, A) => B): B = f(b, fa.get)
-        // TODO: Make this function actually lazy
-        override def foldRight[A, B](fa: Context[C, A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = f(fa.get, lb)
-      }
-    }
-  }
-
   case class CommittableOffset(offset: Long)
 
-  type CommittableElement[A] = Context[CommittableOffset, A]
+  type CommittableElement[A] = (CommittableOffset, A)
 
   val c: Functor[CommittableElement] = Functor[CommittableElement]
   val t: Traverse[CommittableElement] = Traverse[CommittableElement]
@@ -66,8 +43,6 @@ object Play {
   }
   def isEven(p: Cubed): Result = if (p.num % 2 == 0) Result(true) else Result(false)
 
-  implicit val x = Applicative[Future]
-
   import syntax.TupleExt._
   ("", 5).left
 
@@ -77,12 +52,14 @@ object Play {
       .buffer(1000, OverflowStrategy.backpressure)
       .map(EitherT.apply)
       .map(_.map(cube))
-      .mapAsync(5)(e => e.traverse(whiteListAsync)).map(_.subflatMap(identity))
+      .mapAsync(5)(e => e.traverse(whiteListAsync))
+      .map(_.subflatMap(identity))
       .throttle(1, 1.second)
       .map(_.map(isEven))
       .map(_.value)
   }
 
+  // To get .asStreamT
   import stream.syntax.SourceExt._
 
   val src2: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
@@ -91,24 +68,11 @@ object Play {
       .buffer(1000, OverflowStrategy.backpressure)
       .map(EitherT.apply).asStreamT
       .map(cube)
-      .mapAsync(5)(whiteListAsync)
-      .transform(_.map(_.subflatMap(identity))).stream // TODO: Look into cleaning this up
+      .mapAsync(5)(whiteListAsync).stream
+      .map(_.subflatMap(identity))
       .throttle(1, 1.second).asStreamT
       .map(isEven).stream
       .map(_.value)
-  }
-
-  val src3: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
-    val x = StreamT(KafkaSource())
-      .map(parse).stream
-      .buffer(1000, OverflowStrategy.backpressure)
-      .map(EitherT.apply).asStreamT
-      .map(cube)
-      .mapAsync(5)(whiteListAsync)
-      // .transform(_.map(_.transform(_.flatten))).stream
-      // .map((x: EitherT[CommittableElement, Errors, Cubed]) =>x)
-
-    null
   }
 }
 
@@ -124,7 +88,7 @@ object KafkaSource {
 
         val hexIdx = idx.toHexString
 
-        Context(CommittableOffset(idx), Incoming(hexIdx))
+        (CommittableOffset(idx), Incoming(hexIdx))
       }
     }
   })
