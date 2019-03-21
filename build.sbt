@@ -3,7 +3,12 @@ name := "example-proj"
 version := "0.1"
 
 scalaVersion := "2.12.8"
-scalacOptions += "-Ypartial-unification"
+scalacOptions ++= Seq(
+  "-Ypartial-unification",
+  "-language:higherKinds",
+  "-language:implicitConversions",
+  "-feature"
+)
 
 val akkaVersion = "2.5.8"
 val akkaHttpVersion = "10.0.11"

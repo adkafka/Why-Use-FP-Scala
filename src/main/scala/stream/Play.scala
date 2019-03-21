@@ -68,7 +68,9 @@ object Play {
 
   implicit val x = Applicative[Future]
 
-  // Note: Would be syntactically cleaner with a StreamT/FlowT class
+  import syntax.TupleExt._
+  ("", 5).left
+
   val src: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
     KafkaSource()
       .map(c.map(_)(parse))
@@ -79,6 +81,34 @@ object Play {
       .throttle(1, 1.second)
       .map(_.map(isEven))
       .map(_.value)
+  }
+
+  import stream.syntax.SourceExt._
+
+  val src2: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
+    StreamT(KafkaSource())
+      .map(parse).stream
+      .buffer(1000, OverflowStrategy.backpressure)
+      .map(EitherT.apply).asStreamT
+      .map(cube)
+      .mapAsync(5)(whiteListAsync)
+      .transform(_.map(_.subflatMap(identity))).stream // TODO: Look into cleaning this up
+      .throttle(1, 1.second).asStreamT
+      .map(isEven).stream
+      .map(_.value)
+  }
+
+  val src3: Source[CommittableElement[Either[Errors, Result]], NotUsed] = {
+    val x = StreamT(KafkaSource())
+      .map(parse).stream
+      .buffer(1000, OverflowStrategy.backpressure)
+      .map(EitherT.apply).asStreamT
+      .map(cube)
+      .mapAsync(5)(whiteListAsync)
+      // .transform(_.map(_.transform(_.flatten))).stream
+      // .map((x: EitherT[CommittableElement, Errors, Cubed]) =>x)
+
+    null
   }
 }
 
