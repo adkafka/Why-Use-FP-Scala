@@ -57,7 +57,7 @@ In a strongly-typed language, *pure functions* are a **black box abstraction**:
 
 Comes in three main forms:
 
-1. **Subtype Polymorphism**: Class inheritance (`class X extends Y`).
+1. **Subtype Polymorphism**: Class inheritance (`class X extends Y`). Algebraic data types are especially helpful here (`sealed`).
 2. **Parametric Polymorphism**: Generics (`List[A]`). Specify generic code to run on various types.
 3. **Ad-Hoc Polymorphism**: Similar to parametric polymorphism, but more generalizable. Change the generic code based on the actual type used.
 
@@ -126,20 +126,25 @@ EitherT(nestedBoom).subflatMap(greet).map(_.toUpperCase)
 
 ## Combining Functional Programming and Polymorphism
 
-* By using and creating libraries built around FP, we can:
-  * Build components that all behave similarly
-  * Reason about our components in isolation
-  * Combine components together without boilerplate
+By using and creating libraries built around Functional Programming and Polymorphism, we can:
+
+* Build components that all behave similarly
+* Reason about our components in isolation
+* Combine components together with minimal boilerplate (Ad Hoc Polymorphism + Cats)
 
 ---
 
-## Category Theory
+## Cats
 
-My definition: Formal study of abstractions
+![right](images/cats2.png)
 
-Branched from math
-
-TODO: Breif definition, and explain how it intersects w/ FP
+* Built by [TypeLevel](https://typelevel.org/)
+* Top notch documentation with a helpful community
+* Modular library
+* **Many** libraries built around it
+* Built upon *Category Theory* (hence the name)
+  * Mathematically grounded study of abstract structures
+* Provides many "Type Classes", and extensive tooling around them
 
 ---
 
@@ -165,24 +170,41 @@ Functor[F[_]]    Monoid[F[_]]    Monad[F[_]]
 
 ---
 
-## Type Class Examples (Cats)
+## Type Class Examples (Cats) - Functor
 
-* Functor
+```scala
+trait Functor[F[_]] {
+  def map[A, B](fa: F[A])(f: A => B): F[B]
+}
+```
 
-* Monoid
-
-* Monad
+[.footer: https://typelevel.org/cats/typeclasses.html]
 
 ---
 
-## Cats
+## Type Class Examples (Cats) - Monoid
 
-![right](images/cats2.png)
+```scala
+trait Monoid[A] {
+  def combine(x: A, y: A): A
+  def empty: A
+}
+```
 
-* Built by [TypeLevel](https://typelevel.org/)
-* Top notch documentation with a helpful community
-* Modular library
-* **Many** libraries built around it
+[.footer: https://typelevel.org/cats/typeclasses.html]
+
+---
+
+## Type Class Examples (Cats) - Monad
+
+```scala
+trait Monad[F[_]] {
+  def pure[A](a: A): F[A]
+  def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
+}
+```
+
+[.footer: https://typelevel.org/cats/typeclasses.html]
 
 ---
 
