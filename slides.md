@@ -67,7 +67,7 @@ Comes in three main forms:
 
 ## Ad-hoc Polymorphism
 
-* Provide separate functions for different types of `A`, that extend some "type class"
+* Provide separate functions for different types of `A`, that extend some *Type Class*
 * Works without access to source code (`Int`, `Source`, etc)
 * Can be enabled and disabled in different scopes
 * Can have multiple implementations for the same type
@@ -76,7 +76,82 @@ Comes in three main forms:
 
 ---
 
-## Ad-hoc Polymorphism Example
+## Ad-hoc Polymorphism - Type Classes
+
+The most common and powerful example of ad-hoc polymorphism is the use of *Type Classes*.
+
+*A Type Class is an interface that defines a behavior*. 
+
+---
+
+## Type Classes vs. Traditional Subtype Polymorphism
+
+Object Oriented Approach
+
+```scala
+trait Serializable {
+  def toJson: String
+}
+
+case class Shared(name: String, timeCreated: DateTime)
+  extends Serializable {
+  def toJson: String = ???
+}
+```
+---
+
+## Type Classes vs. Traditional Subtype Polymorphism
+
+Type Class Approach
+
+```scala
+case class Shared(name: String, timeCreated: DateTime)
+
+trait CanSerialize[A] {
+  def toJson: String
+}
+
+implicit val SharedEpochSer = new CanSerialize[Shared] {...}
+implicit val SharedRfcSer = new CanSerialize[Shared] {...}
+```
+
+[.footer:  http://learnyouahaskell.com/types-and-typeclasses]
+
+---
+
+## Type Classes vs. Traditional Subtype Polymorphism
+
+Type Classes *separate class definition* from its *behavior*.
+
+Separating these two allows all applications to share the same *class definition*, but select *which serializer* to use when needed.
+
+---
+
+## Combining Functional Programming and Polymorphism
+
+By using and creating libraries built around Functional Programming and Polymorphism, we can:
+
+* Build components that all behave similarly
+* Reason about our components in isolation
+* Combine components together with minimal boilerplate (Type Classes + Cats)
+
+---
+
+## Cats
+
+![right](images/cats2.png)
+
+* Built by [TypeLevel](https://typelevel.org/)
+* Top notch documentation with a helpful community
+* Modular library
+* **Many** libraries built around it
+* Built upon *Category Theory* (hence the name)
+  * Mathematically grounded study of abstract structures
+* Provides many "Type Classes", and extensive tooling around them
+
+---
+
+## Cats Type Class Example
 
 [.code-highlight: 12]
 [.code-highlight: 4-11]
@@ -124,61 +199,26 @@ EitherT(nestedBoom).subflatMap(greet).map(_.toUpperCase)
 
 ---
 
-## Combining Functional Programming and Polymorphism
-
-By using and creating libraries built around Functional Programming and Polymorphism, we can:
-
-* Build components that all behave similarly
-* Reason about our components in isolation
-* Combine components together with minimal boilerplate (Ad Hoc Polymorphism + Cats)
-
----
-
-## Cats
-
-![right](images/cats2.png)
-
-* Built by [TypeLevel](https://typelevel.org/)
-* Top notch documentation with a helpful community
-* Modular library
-* **Many** libraries built around it
-* Built upon *Category Theory* (hence the name)
-  * Mathematically grounded study of abstract structures
-* Provides many "Type Classes", and extensive tooling around them
-
----
-
-## Type Classes (Higher-Kinded types, Higher-Order types)
+## Higher-Order types (Higher-Kinded types)
 
 **Proper**
 ```
-Int    String    Car    HttpRequst
+Int             String          Car         HttpRequst
 ```
 **First-Order**
 ```
-List[A]    Option[A]    Either[L, R]    Flow[A, B, M]
+List[A]         Option[A]       Either[L, R]            Flow[A, B, M]
+Ordering[A]     Monoid[A]       Show[A]
 ```
 **Higher-Order**
 ```
-Functor[F[_]]    Monoid[F[_]]    Monad[F[_]]
+Functor[F[_]]   Monad[F[_]]     Bifunctor[F[_, _]]
 ```
 
 > Concretely, a higher-order abstraction abstracts over something that abstracts over something
 - Aadrian Moors
 
 [.footer: https://stackoverflow.com/questions/6246719/what-is-a-higher-kinded-type-in-scala/6427289#6427289]
-
----
-
-## Type Class Examples (Cats) - Functor
-
-```scala
-trait Functor[F[_]] {
-  def map[A, B](fa: F[A])(f: A => B): F[B]
-}
-```
-
-[.footer: https://typelevel.org/cats/typeclasses.html]
 
 ---
 
@@ -195,12 +235,26 @@ trait Monoid[A] {
 
 ---
 
+## Type Class Examples (Cats) - Functor
+
+```scala
+trait Functor[F[_]] {
+  def map[A, B](fa: F[A])(f: A => B): F[B]
+}
+```
+
+[.footer: https://typelevel.org/cats/typeclasses.html]
+
+---
+
 ## Type Class Examples (Cats) - Monad
 
 ```scala
-trait Monad[F[_]] {
+trait Monad[F[_]] extends Functor[F]{
   def pure[A](a: A): F[A]
   def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
+  def map[A, B](fa: F[A])(f: A => B): F[B] =
+    flatMap(fa)(a => pure(f(a)))
 }
 ```
 
