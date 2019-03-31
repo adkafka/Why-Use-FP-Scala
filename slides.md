@@ -44,6 +44,7 @@ With powerful abstractions, applications focus on the business logic, and the "g
 In a strongly-typed language, *pure functions* are a **black box abstraction**:
 
 * Only need to understand the parameters and the return type
+* Has no "side effects"
 * If you want to be pedantic, you could point out that no function is a true black box (time, effects on hardware, energy usage, etc.)
 * The point is that for **most** uses, you can think of pure functions as a black box; implementation does not matter
 
@@ -82,6 +83,8 @@ The most common and powerful example of ad-hoc polymorphism is the use of *Type 
 
 *A Type Class is an interface that defines a behavior*. 
 
+[.footer:  http://learnyouahaskell.com/types-and-typeclasses]
+
 ---
 
 ## Type Classes vs. Traditional Subtype Polymorphism
@@ -98,6 +101,7 @@ case class Shared(name: String, timeCreated: DateTime)
   def toJson: String = ???
 }
 ```
+
 ---
 
 ## Type Classes vs. Traditional Subtype Polymorphism
@@ -114,8 +118,6 @@ trait CanSerialize[A] {
 implicit val SharedEpochSer = new CanSerialize[Shared] {...}
 implicit val SharedRfcSer = new CanSerialize[Shared] {...}
 ```
-
-[.footer:  http://learnyouahaskell.com/types-and-typeclasses]
 
 ---
 
@@ -147,7 +149,7 @@ By using and creating libraries built around Functional Programming and Polymorp
 * **Many** libraries built around it
 * Built upon *Category Theory* (hence the name)
   * Mathematically grounded study of abstract structures
-* Provides many "Type Classes", and extensive tooling around them
+* Provides many Type Classes, and extensive tooling around them
 
 ---
 
