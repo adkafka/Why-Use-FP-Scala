@@ -15,6 +15,7 @@ This means code that:
 
 * Is easy to test
 * Is easy to re-use
+* We can write quickly
 * Provides a useful abstraction
 * Handles failure by design
 * Scales well, is performant, and robust (Akka solves this for us)
@@ -28,6 +29,19 @@ This means code that:
 Are the **holy grail** in programming; they allow for thinking about a problem in isolation, without worrying about other components.
 
 With powerful abstractions, applications focus on the business logic, and the "glue" between the abstractions.
+
+---
+
+## Square-Cube Law
+
+Analogy: [Square-Cube Law](https://en.wikipedia.org/wiki/Square%E2%80%93cube_law): As the size of an object increases, its *surface area* increases at *O^2*, while its *volume* increases at *O^3*.
+
+In our world, the *surface area* is the information we need in order to *compose* chunks. The *volume* is the information we need in order to *implement them*. Once a chunk is implemented, we only need to think about the surface area.
+
+* FP  => surface area == function signature
+* OOP => surface area == class, trait
+
+[.footer: https://bartoszmilewski.com/2014/11/04/category-the-essence-of-composition/]
 
 ---
 
@@ -89,6 +103,12 @@ The most common and powerful example of ad-hoc polymorphism is the use of *Type 
 
 ## Type Classes vs. Traditional Subtype Polymorphism
 
+Example: Taking a shared data type and serializing into JSON
+
+---
+
+## Type Classes vs. Traditional Subtype Polymorphism
+
 Object Oriented Approach
 
 ```scala
@@ -116,7 +136,7 @@ trait CanSerialize[A] {
 }
 
 implicit val SharedEpochSer = new CanSerialize[Shared] {...}
-implicit val SharedRfcSer = new CanSerialize[Shared] {...}
+implicit val SharedRfcSer   = new CanSerialize[Shared] {...}
 ```
 
 ---
@@ -133,6 +153,7 @@ Separating these two allows all applications to share the same *class definition
 
 By using and creating libraries built around Functional Programming and Polymorphism, we can:
 
+* Separate data types from behaviors
 * Build components that all behave similarly
 * Reason about our components in isolation
 * Combine components together with minimal boilerplate (Type Classes + Cats)
