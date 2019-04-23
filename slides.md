@@ -7,6 +7,23 @@ theme: work
 
 ---
 
+## Agenda
+
+1. Our high-level goals
+1. Abstraction
+  * Including personal musings
+1. Patterns in creating abstractions
+  * Pure functions
+  * Ad-hoc polymorphism and type classes
+1. Cats library
+  * Higher order types
+  * Examples of type classes
+1. Deeper dive into code (informal)
+  * Kafka consumption
+  * API
+
+---
+
 ## Our Goal
 
 **Ship quality code**
@@ -34,7 +51,7 @@ With powerful abstractions, applications focus on the business logic, and the "g
 
 ## Square-Cube Law
 
-Analogy: [Square-Cube Law](https://en.wikipedia.org/wiki/Square%E2%80%93cube_law): As the size of an object increases, its *surface area* increases at *O^2*, while its *volume* increases at *O^3*.
+Analogy: [Square-Cube Law](https://en.wikipedia.org/wiki/Square%E2%80%93cube_law): As the size *($$n$$)* of an object increases, its *surface area* increases at *$$O(n^2$$)*, while its *volume* increases at *$$O(n^3)$$*.
 
 In our world, the *surface area* is the information we need in order to *compose* chunks. The *volume* is the information we need in order to *implement them*. Once a chunk is implemented, we only need to think about the surface area.
 
@@ -42,6 +59,12 @@ In our world, the *surface area* is the information we need in order to *compose
 * OOP => surface area == class, trait
 
 [.footer: https://bartoszmilewski.com/2014/11/04/category-the-essence-of-composition/]
+
+---
+
+![inline](images/JoeArmstrong-TheMessWe'reIn.png)
+
+[.footer: "The Mess We're In" by Joe Armstrong - https://www.youtube.com/watch?v=lKXe3HUG2l4]
 
 ---
 
@@ -93,9 +116,9 @@ Comes in three main forms:
 
 ## Ad-hoc Polymorphism - Type Classes
 
-The most common and powerful example of ad-hoc polymorphism is the use of *Type Classes*.
+The most common and powerful example of ad-hoc polymorphism is the use of Type Classes.
 
-*A Type Class is an interface that defines a behavior*. 
+*Type Class*: An interface that defines a behavior.
 
 [.footer:  http://learnyouahaskell.com/types-and-typeclasses]
 
@@ -147,6 +170,8 @@ Type Classes *separate class definition* from its *behavior*.
 
 Separating these two allows all applications to share the same *class definition*, but select *which serializer* to use when needed.
 
+Type Classes often *compose*, meaning if you have a type class for `A`, you automatically have a type class for `Option[A]`, `Map[?, A]`, etc.
+
 ---
 
 ## Combining Functional Programming and Polymorphism
@@ -166,6 +191,7 @@ By using and creating libraries built around Functional Programming and Polymorp
 
 * Built by [TypeLevel](https://typelevel.org/)
 * Top notch documentation with a helpful community
+  * Great interactive tutorial from [scala-exercises](https://www.scala-exercises.org/cats)
 * Modular library
 * **Many** libraries built around it
 * Built upon *Category Theory* (hence the name)
@@ -192,7 +218,7 @@ object CommittableElement {
   }
 }
 
-case class CommittableElement[E](committableOffset: CommittableOffset, element: E)
+case class CommittableElement[A](committableOffset: CommittableOffset, element: A)
 
 object Main extends App {
   functor.map(CommittableElement(offset, 5))(_ + 1)
@@ -245,11 +271,22 @@ Functor[F[_]]   Monad[F[_]]     Bifunctor[F[_, _]]
 
 ---
 
+## Type Class Examples (Cats) - Semigroup
+
+```scala
+trait Semigroup[A] {
+  def combine(x: A, y: A): A
+}
+```
+
+[.footer: https://typelevel.org/cats/typeclasses.html]
+
+---
+
 ## Type Class Examples (Cats) - Monoid
 
 ```scala
-trait Monoid[A] {
-  def combine(x: A, y: A): A
+trait Monoid[A] extends Semigroup[A] {
   def empty: A
 }
 ```
