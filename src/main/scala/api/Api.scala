@@ -10,6 +10,7 @@ import cats._
 import cats.data._
 import cats.implicits._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.DecodingFailure
 import io.circe.generic.auto._
 
 import scala.concurrent.ExecutionContext
@@ -96,8 +97,8 @@ object Api {
 
     def filterBadResponse(response: HttpResponse): FutApi[SuccessResponse] = {
       if (response.status != StatusCodes.OK) {
-        response.entity.dataBytes.runWith(Sink.ignore).flatMap { _ =>
-          Future.successful(Either.left(HttpResponseException(response.status)))
+        response.entity.dataBytes.runWith(Sink.ignore).map { _ =>
+          Either.left(HttpResponseException(response.status))
         }
       }
       else SuccessResponse(response).pure[FutApi]
@@ -105,7 +106,7 @@ object Api {
 
     def unmarshal(goodResponse: SuccessResponse): FutApi[Response] = {
       Unmarshal(goodResponse.get).to[Response]
-        .liftToEither { case ex => UnmarshalResponseException(ex) }
+        .liftToEither { case ex: DecodingFailure  => UnmarshalResponseException(ex) }
     }
 
     EitherT(request())

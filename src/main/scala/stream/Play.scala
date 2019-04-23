@@ -19,7 +19,6 @@ object Play {
   type CommittableElement[A] = (CommittableOffset, A)
 
   val c: Functor[CommittableElement] = Functor[CommittableElement]
-  val t: Traverse[CommittableElement] = Traverse[CommittableElement]
 
   case class Incoming(hexString: String)
   case class Parsed(num: Int)
