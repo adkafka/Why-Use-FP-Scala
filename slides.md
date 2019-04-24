@@ -14,6 +14,7 @@ theme: work
   * Including personal musings
 1. Patterns in creating abstractions
   * Pure functions
+  * Polymorphism
   * Ad-hoc polymorphism and type classes
 1. Cats library
   * Higher order types
@@ -155,7 +156,7 @@ Type Class Approach
 case class Shared(name: String, timeCreated: DateTime)
 
 trait CanSerialize[A] {
-  def toJson: String
+  def toJson(in: A): String
 }
 
 implicit val SharedEpochSer = new CanSerialize[Shared] {...}
@@ -231,19 +232,19 @@ object Main extends App {
 ## Example Continued
 
 ```scala
-def greet(str: String): Either[Throwable, String] = {
-  if (str.contains("boom")) Left(new RuntimeException("boom"))
+def greet(str: String): Either[Error, String] = {
+  if (str.contains("boom")) Left(Error("boom"))
   else Right(s"$str world")
 }
 
-val nestedHello = CommittableElement(offset, Either.right[Throwable, String]("hello"))
-val nestedBoom = CommittableElement(offset, Either.right[Throwable, String]("boom"))
+val nestedHello = CommittableElement(offset, Either.right[Error, String]("hello"))
+val nestedBoom = CommittableElement(offset, Either.right[Error, String]("boom"))
 
 EitherT(nestedHello).subflatMap(greet).map(_.toUpperCase)
 // CommittableElement(offset, Right("HELLO WORLD"))
 
 EitherT(nestedBoom).subflatMap(greet).map(_.toUpperCase)
-// CommittableElement(offset, Left(RuntimeException("boom")))
+// CommittableElement(offset, Left(Error("boom")))
 ```
 
 ---
